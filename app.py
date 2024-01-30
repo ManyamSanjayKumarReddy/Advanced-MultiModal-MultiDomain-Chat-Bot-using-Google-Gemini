@@ -211,7 +211,7 @@ else:
         df = pd.DataFrame(history_data, columns=["Question", "Expire On"])
 
         # Display the last 5 rows in reverse order
-        st.write(df.tail(5).iloc[::-1])
+        st.write(df.tail(20).iloc[::-1])
     else:
         st.info("No question history available.")
 
