@@ -44,15 +44,6 @@ def read_question_history():
         return []
     
 
-# Function to read question history from CSV file
-def read_question_history():
-    try:
-        with open(csv_file_path, mode='r') as file:
-            reader = csv.reader(file)
-            history_data = list(reader)
-        return history_data
-    except FileNotFoundError:
-        return []
         
 # Function to configure API key
 def configure_api_key():
@@ -99,7 +90,12 @@ def input_image_setup(uploaded_file):
 
 
 # Updated and more powerful prompt
-prompt = "Positioned as a knowledgeable and informative resource, respond comprehensively and helpfully to the user's query, drawing from various fields of knowledge."
+prompt = """
+
+Positioned as a knowledgeable and informative resource, respond comprehensively and helpfully to the user's query, drawing from various fields of knowledge. Also use Neat Points & Paragraphs Required for more accurate. 
+
+If the user asks to Give Image as output Please tell him to use our MultiModal Application for more Details..
+"""
 
 # Initialize Streamlit app
 st.set_page_config(page_title="MultiModal and Multi-Domain Chat Bot")
@@ -131,7 +127,7 @@ st.sidebar.markdown(
 )
 
 # Option to choose between MultiModal and Multi-Domain Chat Bot
-use_multimodal = st.checkbox("Use MultiModal")
+use_multimodal = st.checkbox("Use MultiModal (For Images)")
 
 # Display MultiModal functionality if checkbox is selected
 if use_multimodal:
@@ -159,6 +155,8 @@ if use_multimodal:
            # Updated default custom prompt for image analysis
             custom_prompt = """
                     Analyze the uploaded image and provide detailed information, including objects present, contextual details, and any notable aspects.
+
+                    Also give the Complete Details about the Image & also specify if that images has any history.
             """
 
 
@@ -211,7 +209,7 @@ else:
         df = pd.DataFrame(history_data, columns=["Question", "Expire On"])
 
         # Display the last 5 rows in reverse order
-        st.write(df.tail(20).iloc[::-1])
+        st.write(df.tail(50).iloc[::-1])
     else:
         st.info("No question history available.")
 
