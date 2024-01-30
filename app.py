@@ -1,8 +1,6 @@
 import streamlit as st
 import os
 import google.generativeai as genai
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
 from datetime import datetime, timedelta
 import csv
 import pandas as pd
@@ -19,13 +17,13 @@ except ImportError:
 csv_file_path = 'question_history.csv'
 
 # Function to store questions in CSV file
-def store_question(question, sector):
+def store_question(question):
     try:
         current_time = datetime.now()
         expiration_time = current_time + timedelta(days=7)  # Auto delete after a week
 
-        # Format the data (question, sector, expiration time)
-        data = [question, sector, expiration_time.strftime('%Y-%m-%d')]
+        # Format the data (question, expiration time)
+        data = [question, expiration_time.strftime('%Y-%m-%d')]
 
         # Append the data to the CSV file
         with open(csv_file_path, mode='a', newline='') as file:
@@ -33,6 +31,7 @@ def store_question(question, sector):
             writer.writerow(data)
     except Exception as e:
         st.error(f"An error occurred while storing the question: {e}")
+
 
 # Function to read question history from CSV file
 def read_question_history():
@@ -43,8 +42,18 @@ def read_question_history():
         return history_data
     except FileNotFoundError:
         return []
+    
 
-
+# Function to read question history from CSV file
+def read_question_history():
+    try:
+        with open(csv_file_path, mode='r') as file:
+            reader = csv.reader(file)
+            history_data = list(reader)
+        return history_data
+    except FileNotFoundError:
+        return []
+        
 # Function to configure API key
 def configure_api_key():
     try:
@@ -52,48 +61,6 @@ def configure_api_key():
     except Exception as e:
         st.warning(f"An error occurred while configuring the API key: {e}")
 
-
-# Updated and more powerful prompts
-prompts = {
-    "educational": "As a seasoned education expert, delve into the intricate details of",
-    "healthcare": "Utilize your vast medical knowledge to provide in-depth insights on",
-    "agriculture": "Harness your expertise in agriculture to elaborate on the nuances of",
-    "hr": "Tap into your extensive human resources background to offer strategic advice on",
-    "ats": "Leverage your authority in applicant tracking systems (ATS) to elucidate the advanced features and applications of",
-    "General": "Demonstrate your comprehensive knowledge by providing detailed information on",
-}
-
-
-
-# Function to detect the sector of a query
-def detect_sector(text):
-    try:
-        # Preprocess text (lowercase, remove stopwords)
-        text = text.lower()
-        words = word_tokenize(text)
-        filtered_words = [word for word in words if word not in stopwords.words('english')]
-
-        # Define sector-specific keywords
-        sector_keywords = {
-            "educational": ["education", "school", "learning", "teaching", "academic", "curriculum"],
-            "healthcare": ["health", "medical", "doctor", "disease", "treatment", "wellness"],
-            "agriculture": ["farming", "crop cultivation", "livestock", "agricultural practices", "sustainable farming", "agroecology"],
-            "hr": ["human resources", "recruitment", "employee management", "workplace culture", "talent acquisition", "HR policies"],
-            "ats": ["applicant tracking system", "recruitment software", "candidate management", "hiring automation", "resume parsing", "job application tracking"],
-        }
-
-        # Match keywords and return the most likely sector
-        sector = "General"
-        max_matches = 0
-        for key, value in sector_keywords.items():
-            matches = len(set(filtered_words) & set(value))
-            if matches > max_matches:
-                max_matches = matches
-                sector = key
-
-        return sector
-    except Exception as e:
-        st.error(f"An error occurred while detecting the sector: {e}")
 
 # Function for educational chat using Google Gemini Pro API
 def gemini_pro(input_text, prompt):
@@ -103,7 +70,6 @@ def gemini_pro(input_text, prompt):
         return response.text
     except Exception as e:
         st.error(f"An error occurred during educational chat: {e}")
-
 # Function for MultiModal chat using Google Gemini Pro Vision API
 def geminiprovision(image, custom_prompt):
     try:
@@ -131,6 +97,10 @@ def input_image_setup(uploaded_file):
         raise FileNotFoundError("No file uploaded")
 
 
+
+# Updated and more powerful prompt
+prompt = "Positioned as a knowledgeable and informative resource, respond comprehensively and helpfully to the user's query, drawing from various fields of knowledge."
+
 # Initialize Streamlit app
 st.set_page_config(page_title="MultiModal and Multi-Domain Chat Bot")
 
@@ -156,7 +126,7 @@ st.sidebar.subheader("Project Details")
 st.sidebar.markdown(
     "- This project integrates natural language processing and computer vision using Google's Generative AI models."
     "\n- The MultiModal Chat Bot analyzes images, extracting information based on user-provided details."
-    "\n- The Multi-Domain Chat Bot answers questions across various sectors with tailored prompts."
+    "\n- The Multi-Domain Chat Bot answers questions across various sectors with a tailored prompt."
     "\n- Explore the power of AI in this interactive chat bot application."
 )
 
@@ -209,7 +179,7 @@ else:
     st.markdown(
         "### Instructions for Multi-Domain Chat Bot\n"
         "1. Enter a question or topic in the 'Input' text box.\n"
-        "2. Click the 'Send Message' button to receive a response based on the detected sector."
+        "2. Click the 'Send Message' button to receive a response."
     )
 
     # Set a default value for the text input
@@ -222,23 +192,15 @@ else:
             st.warning("Please enter a question or topic.")
         else:
             configure_api_key()  # Configure API key
-            # Detect sector
-            sector = detect_sector(input_text)
-
-            # Choose appropriate prompt
-            prompt = prompts[sector]
-
             # Store question in CSV file
-            store_question(input_text, sector)
+            store_question(input_text)
 
             # Generate response
             response = gemini_pro(input_text, prompt)
 
-            # Display response and sector
+            # Display response
             st.subheader("Answer:")
             st.write(response)
-            st.subheader("Sector:")
-            st.write(sector)
 
     # Display last 5 rows of question history with column names
     history_data = read_question_history()
@@ -246,7 +208,7 @@ else:
         st.subheader("Recent Search History")
 
         # Convert the list of lists to a DataFrame
-        df = pd.DataFrame(history_data, columns=["Question", "Sector", "Expire On"])
+        df = pd.DataFrame(history_data, columns=["Question", "Expire On"])
 
         # Display the last 5 rows in reverse order
         st.write(df.tail(5).iloc[::-1])
